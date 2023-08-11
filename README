@@ -48,6 +48,11 @@ Files c+d are automatically fetched (once) using wget. If you don't have wget av
 Examples of files a-e are in the TestData/ directory
 Examples of citlist-${mylname}.tex, citlist-${mylname}.pdf are in the Examples/ directory.
 
+Citations are separated in 3 categories:
+   Type 0: citations
+   Type 1: self-citations by collaborators, but not you
+   Type 2: self-citations by you and others
+
 
 Documentation
 =============
