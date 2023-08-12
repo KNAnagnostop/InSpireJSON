@@ -12,11 +12,34 @@ External programs: wget
 Usage:  
 ======
 
+For InSpireMakePublist.pl and InSpireMakeCitationList.pl:
+
 Preferences: You should edit the files and set your personal (or other person's) data appropriately.          Follow the instructions from the comments in the source files.
              The LaTeX output can be controlled from special variables in the beggining of the script files.  Follow the instructions from the comments in the source files.
         
 Then, simply make the scripts InSpireMakePublist.pl, InSpireMakeCitationList.pl executables and run them in the command line, or run them as Perl scripts in any way you know.
 
+For jsoncat: This is a fundamental tool to inspect the content of json files.
+
+Usage: jsoncat [options] <files>
+ -t: Show title
+ -a: Show authors
+ -d: Show doi
+ -j: Show journal
+ -T: Show type of publications: ARTICLE, INPROCEEDINGS etc
+ -l: long   listing
+ -L: longer listing
+ -r: make report: multiple line output per record
+ -A: make a report like -r, but print also the abstract
+ -D: dump data up to level $dumpDepth (Default: 8)
+ -B $dumpDepth: Set level $dumpDepth for a data dump.
+Reads <files> or STDIN for BibTeX entries and print information in STDOUT. Each file (or STDIN) must contain only one JSON record.
+
+Examples: 
+jsoncat -r file1.json file2.json file3.json
+cat file.json |  jsoncat -d | column -t
+cat file.json |  jsoncat -a | cat -n               | column -t -s"|"
+cat file.json |  jsoncat -l | grep article         | column -t -s"|"
 
 Output:
 =======
@@ -52,7 +75,6 @@ Citations are separated in 3 categories:
    Type 0: citations
    Type 1: self-citations by collaborators, but not you
    Type 2: self-citations by you and others
-
 
 Documentation
 =============
