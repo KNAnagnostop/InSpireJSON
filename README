@@ -33,7 +33,7 @@ Usage: jsoncat [options] <files>
  -A: make a report like -r, but print also the abstract
  -D: dump data up to level $dumpDepth (Default: 8)
  -B $dumpDepth: Set level $dumpDepth for a data dump.
-Reads <files> or STDIN for BibTeX entries and print information in STDOUT. Each file (or STDIN) must contain only one JSON record.
+Reads <files> or STDIN for JSON entries and print information in STDOUT. Each file (or STDIN) must contain only one JSON record.
 
 Examples: 
 jsoncat -r file1.json file2.json file3.json
