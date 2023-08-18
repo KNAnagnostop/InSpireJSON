@@ -19,7 +19,6 @@ $makereport   = 0; # Option: -r
 $showabstract = 0; # Option: -A
 $dumpalldata  = 0; # Option: -D
 $dumpDepth    = 8; # Option: -B
-$showabstract = 0;
 # --------------------- OPTIONS       --------------------------------
 $cdir = cwd;chomp($cdir);
 $prog = basename($0);
@@ -77,7 +76,7 @@ if($#filehandles < 0){@filehandles = (*STDIN)}
    $arxiv    = ${$t}{hits}{hits}[$n]{metadata}{arxiv_eprints}   [0]{value};                    if( ! $arxiv){$arxiv = "NoArXiv";}
    $journal  = ${$t}{hits}{hits}[$n]{metadata}{publication_info}[0]{journal_title};
    $jvol     = ${$t}{hits}{hits}[$n]{metadata}{publication_info}[0]{journal_volume};
-   $jyear    = ${$t}{hits}{hits}[$n]{metadata}{publication_info}[0]{year};
+   $jyear    = ${$t}{hits}{hits}[$n]{metadata}{publication_info}[0]{year};                     if( ! $jyear){$jyear = ${$t}{hits}{hits}[$n]{metadata}{earliest_date};} # see also: preprint_date
    $jpage    = ${$t}{hits}{hits}[$n]{metadata}{publication_info}[0]{artid}; # same as: page_start (if it exists), prefer artid
    $authorsb = ""; for( my $nn = 0; $nn < $nauth-1; $nn++){$authorsb .= ${$t}{hits}{hits}[$n]{metadata}{authors}[$nn     ]{full_name}." and ";}; # BibTeX style
                                                           $authorsb .= ${$t}{hits}{hits}[$n]{metadata}{authors}[$nauth-1]{full_name};
@@ -87,7 +86,7 @@ if($#filehandles < 0){@filehandles = (*STDIN)}
    #For authors, see also:    first_name, last_name, full_name, recid 
 
    
-    if($journal){$published = "$journal $jvol $jyear $jpage";}else{$published="NotPublished";}
+    if($journal){$published = "$journal $jvol $jyear $jpage";}else{$published="NotPublished $jyear";}
 
 
     $out                    = "$arxiv | $bibid | $id \n";            # print in columns using column -t -s "|"
@@ -161,8 +160,6 @@ EOF
 }
 sub main::HELP_MESSAGE(){ usage();} #for --help (does not work when default?)
 # -------------------------------------------------------------------
-if($#ARGV < -1){usage();} #$ARGV[0-] arguments (not progname) $#ARGV=-1 (noarg)
-
 # $f = /d/f.e => "e" = extension($f);"f"= filename($f);"/d"=dirname($f);"f.e"=basename($f);
 sub extension(){($f,$d,$e)=fileparse(@_,qr/\.[^.]*$/);return $e}
 sub filename (){($f,$d,$e)=fileparse(@_,qr/\.[^.]*$/);return $f}
