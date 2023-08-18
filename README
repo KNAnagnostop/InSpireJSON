@@ -1,8 +1,8 @@
 Dependencies:
 =============
 
-Perl:    JSON JSON::Parse
-         Install with:       cpan -i JSON JSON::Parse                 (use sudo for systemwide installation)
+Perl:    JSON JSON::Parse BibTeX::Parser 
+         Install with:       cpan -i JSON JSON::Parse  BibTeX::Parser                (use sudo for systemwide installation)
 
 
 External programs: wget   
@@ -33,13 +33,28 @@ Usage: jsoncat [options] <files>
  -A: make a report like -r, but print also the abstract
  -D: dump data up to level $dumpDepth (Default: 8)
  -B $dumpDepth: Set level $dumpDepth for a data dump.
-Reads <files> or STDIN for JSON entries and print information in STDOUT. Each file (or STDIN) must contain only one JSON record.
+Reads <files> or STDIN for BibTeX entries and print information in STDOUT. Each file (or STDIN) must contain only one JSON record.
 
 Examples: 
 jsoncat -r file1.json file2.json file3.json
 cat file.json |  jsoncat -d | column -t
 cat file.json |  jsoncat -a | cat -n               | column -t -s"|"
 cat file.json |  jsoncat -l | grep article         | column -t -s"|"
+
+There is a BibTeX tool, in order to see the content of BibTeX files downloaded from inspirehet:
+
+Usage: bibcat [options] <files>
+ -t: Show title
+ -a: Show authors
+ -d: Show doi
+ -j: Show journal
+ -T: Show type of publications: ARTICLE, INPROCEEDINGS etc
+ -l: long   listing
+ -L: longer listing
+ -r: make report: multiple line output per record
+Reads <files> or STDIN for BibTeX entries and print information in STDOUT.
+
+
 
 Output:
 =======
