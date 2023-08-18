@@ -1,0 +1,161 @@
+#!/usr/bin/perl
+# -------------------------------------------------------------------
+use BibTeX::Parser;use IO::File; use utf8::all;
+use Getopt::Std;
+use Switch 'Perl6'; use Sys::Hostname; use Time::HiRes qw(usleep);#usleep($microseconds)
+use File::Basename; use File::Copy; use File::Find; use Cwd;use File::Path;
+# -------------------------------------------------------------------
+# Default preferences:   in order of priority: if many are one, the last 1 prevails
+$showtype    = 0; # Option: -T
+$showtitle   = 0; # Option: -t
+$showauth    = 0; # Option: -a
+$showdoi     = 0; # Option: -d
+$showjournal = 0; # Option: -j
+$long        = 0; # Option: -l
+$Long        = 0; # Option: -L
+$makereport  = 0; # Option: -r
+# --------------------- OPTIONS       --------------------------------
+$cdir = cwd;chomp($cdir);
+$prog = basename($0);
+getopt('', \%opts); #here we add only options with args like: getopt('Xx', \%opts);
+foreach $opt (keys %opts){
+ given($opt){
+# when /[xX]/ {$t = $opts{$opt};print "${opt}: handling X\n";last;}
+  when /[T]/  {$showtype    = 1;last;}
+  when /[t]/  {$showtitle   = 1;last;}
+  when /[a]/  {$showauth    = 1;last;}
+  when /[d]/  {$showdoi     = 1;last;}
+  when /[j]/  {$showjournal = 1;last;}
+  when /[l]/  {$long        = 1;last;}
+  when /[L]/  {$Long        = 1;last;}
+  when /[r]/  {$makereport  = 1;last;}
+  when 'h' {usage();last;}
+  default  {usage("Not a valid option: $opt");}
+ }
+}
+# -------------------------------------------------------------------
+# File handles to open:
+@filehandles = ();
+foreach my $file (@ARGV){
+ my $in;
+ unless( open ($in, "<", $file) ){die "${prog}: could not open $file for reading.";}
+ @filehandles = (@filehandles, $in);
+}
+if($#filehandles < 0){@filehandles = (*STDIN)}
+# -------------------------------------------------------------------
+# Analyze each file:
+ FILELOOP: foreach my $fh (@filehandles){
+  $mypubsparser    = BibTeX::Parser->new($fh);
+  
+ PUBLOOP:  while( my $entry = $mypubsparser-> next){
+    my $out, $published;
+    $npub    += 1 ;
+
+    $bibid    = $entry->key;
+    $type     = $entry->type;
+    $doi      = $entry->field("doi"    );           if( ! $doi  ){$doi   = "NoDOI";}
+    $title    = $entry->field("title"  );
+    $arxiv    = $entry->field("eprint" );           if( ! $arxiv){$arxiv = "NoArXiv";}
+    $journal  = $entry->field("journal");
+    $jvol     = $entry->field("volume" );
+    $jyear    = $entry->field("year"   );
+    $jpage    = $entry->field("pages"  );
+    $title    = $entry->field("title"  );            $title      =~ s/[\{\}]//g;
+    $authorsb = $entry->field("author" );
+    $editors  = $entry->field("editor" );           if(!$authorsb){$authorsb=$editors;}
+    $urldoi   = "https://www.doi.org/$doi";
+    $urlarxiv = "https://arxiv.org/abs/$arxiv";
+
+    #Construct a list of authors in First Last, ... format:
+    @authorslist  = split "and",$authorsb; $authors      = ""; $nauth     = $#authorslist + 1;
+    for(my $n = 0 ; $n <=  $#authorslist; $n++){
+     (my $last, my $first) = split ",",$authorslist[$n]; $first =~  s/^\s+|\s+$//g;$last =~  s/^\s+|\s+$//g; $authors .= "$first $last"; if($n < $#authorslist){$authors .= ", ";}
+    }
+
+    if($journal){$published = "$journal $jvol $jyear $jpage";}else{$published="NotPublished";}
+
+    $out                    = "$arxiv | $bibid";            # print in columns using column -t -s "|"
+    if($showtype    ){ $out = "$arxiv | $bibid | $type"                    ;}
+    if($showtitle   ){ $out = "$arxiv | $bibid | $title"                   ;}
+    if($showauth    ){ $out = "$arxiv | $bibid | $nauth | $authors"        ;}
+    if($showdoi     ){ $out = "$arxiv | $bibid | $doi"                     ;}
+    if($showjournal ){ $out = "$arxiv | $bibid | $doi | $published"        ;}
+    if($long        ){ $out = "$arxiv | $bibid | $doi | $type | $published";}
+    if($Long        ){ $out = "$arxiv | $bibid | $doi | $type | $published | $nauth | $authors | $title";}
+    if($makereport  ){
+     $out  = "-----------------|-------|--------|------------|-----|----------------\n";
+     $out .= "                 | npub  | eprint | BibTex Key | DOI | Type of article\n";
+     $out .= "NewRecord        | $npub | $arxiv | $bibid | $doi | $type\n";
+     $out .= "Published in     | $published\n";
+     $out .= "DOI              | $doi\n";
+     $out .= "Title            | $title\n";
+     $out .= "Authors          | $nauth | $authors\n"; 
+     $out .= "AuthorsBibTeX    | $nauth | $authorsb\n"; 
+    #$out .= 
+    }
+    print "$out\n";
+
+   #if($npub > 1){last FILELOOP;} #Debugging
+ } # PUBLOOP:  while( my $entry = $mypubsparser-> next)
+
+}  # FILELOOP: foreach my $fh (@filehandles)
+
+
+# ----------------------- HELP MESSAGE ------------------------------
+sub usage(){
+ if(@_){$message  = shift(@_)."\n";}
+ $message .= << "EOF";
+Usage: ${prog} [options] <files>
+ -t: Show title
+ -a: Show authors
+ -d: Show doi
+ -j: Show journal
+ -T: Show type of publications: ARTICLE, INPROCEEDINGS etc
+ -l: long   listing
+ -L: longer listing
+ -r: make report: multiple line output per record
+Reads <files> or STDIN for BibTeX entries and print information in STDOUT.
+
+Examples:
+${prog} -r file1.bib file2.bib file3.bib
+cat *.bib | ${prog}
+cat *.bib | ${prog} -a | cat -n               | column -t -s"|"
+cat *.bib |  ${prog} -l | grep ARTICLE         | column -t -s"|"
+cat *.bib |  ${prog} -j | grep "Nucl. Phys. B" | column -t -s"|" | cat -n
+cat *.bib |  ${prog} -l | grep JHEP            | awk       -F"|" '{print \$1,\$2,\$3}'
+cat *.bib |  ${prog} -a | grep  "^hep-th"      | perl -nle '\@F=split /\\\|/;\@auth=split /\\,/,\$F[3];print \$F[0],\$\#auth+1, \$auth[0];'
+(the last line counts the number of authors, and prints eprint, no. authors, and first author)
+EOF
+ print STDERR $message;
+ exit(1);
+}
+sub main::HELP_MESSAGE(){ usage();} #for --help (does not work when default?)
+# -------------------------------------------------------------------
+if($#ARGV < -1){usage();} #$ARGV[0-] arguments (not progname) $#ARGV=-1 (noarg)
+
+# $f = /d/f.e => "e" = extension($f);"f"= filename($f);"/d"=dirname($f);"f.e"=basename($f);
+sub extension(){($f,$d,$e)=fileparse(@_,qr/\.[^.]*$/);return $e}
+sub filename (){($f,$d,$e)=fileparse(@_,qr/\.[^.]*$/);return $f}
+
+
+#----------------------------------------------------------
+
+# !  #####################################################################
+# !  ---------------------------------------------------------------------
+# !  Copyright by Konstantinos N. Anagnostopoulos (2023)
+# !  Physics Dept., National Technical University,
+# !  konstant@mail.ntua.gr, www.physics.ntua.gr/konstant
+# !  
+# !  This program is free software: you can redistribute it and/or modify
+# !  it under the terms of the GNU General Public License as published by
+# !  the Free Software Foundation, version 3 of the License.
+# !  
+# !  This program is distributed in the hope that it will be useful, but
+# !  WITHOUT ANY WARRANTY; without even the implied warranty of
+# !  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# !  General Public License for more details.
+# !  
+# !  You should have received a copy of the GNU General Public Liense along
+# !  with this program.  If not, see <http://www.gnu.org/licenses/>.
+# !  ---------------------------------------------------------------------
+# !  #####################################################################
