@@ -93,11 +93,15 @@ print LOG "Number of publications: $npubs\n";
    if($arxiv ne  "NoArXiv"){$pubstring .= ", \\href{$urlarxiv}{arXiv:$arxiv}"                       ;}
   }
   ($latexdoi = $doi) =~ s/\_/\\\_/g;
-  if( $doi   ne  "NoDOI"  ){$pubstring .=  ", \\href{$urldoi}{[doi:$latexdoi]}"                     ;}
+  if( $doi   ne  "NoDOI"  ){$pubstring .=  "\\\\ \\href{$urldoi}{[doi:$latexdoi]}"                  ;}
+
+  
+  ($latextitle = $title) =~ s/[\_\^\$\\\\\&]//g;        # remove math stuff
+
 
   $latex .= "%-------------------------------------------------------------------------\n";
   $latex .= "% NewRecord: ${npub}. $arxiv $bibid SlacID: $id DOI: $doi Citations:  $cites ( $ccites ) Pages: $npages\n";
-  $latex .= "\\item $authors, {\\it ``$title''}${pubstring}.\n";
+  $latex .= "\\item $authors, {\\it ``$latextitle''}${pubstring}\n";
   if($includecitations && $cites > 0){
   ($latexclink = $clink) =~ s{api\/}{};
   $latex .= "\\\\\\href{$latexclink}{Cited by $cites ($ccites)} articles\n";
@@ -129,11 +133,12 @@ print LOG "Number of publications: $npubs\n";
    $citarxiv    = ${$c}{hits}{hits}[$icit]{metadata}{arxiv_eprints}   [0]{value};                    if( ! $citarxiv){$citarxiv = "NoArXiv";}
    $citdoi      = ${$c}{hits}{hits}[$icit]{metadata}{dois}            [0]{value};                    if( ! $citdoi  ){$citdoi   = "NoDOI";}
    $citbibid    = ${$c}{hits}{hits}[$icit]{metadata}{texkeys}         [0];
+   $cittype     = ${$c}{hits}{hits}[$icit]{metadata}{document_type}   [0];
    $citnauth    = ${$c}{hits}{hits}[$icit]{metadata}{author_count};
    $cittitle    = ${$c}{hits}{hits}[$icit]{metadata}{titles}   [0]{title};
    $citjournal  = ${$c}{hits}{hits}[$icit]{metadata}{publication_info}[0]{journal_title};
    $citjvol     = ${$c}{hits}{hits}[$icit]{metadata}{publication_info}[0]{journal_volume};
-   $citjyear    = ${$c}{hits}{hits}[$icit]{metadata}{publication_info}[0]{year};
+   $citjyear    = ${$c}{hits}{hits}[$icit]{metadata}{publication_info}[0]{year};                     if( ! $citjyear){$citjyear = ${$c}{hits}{hits}[$icit]{metadata}{earliest_date};}
    $citjpage    = ${$c}{hits}{hits}[$icit]{metadata}{publication_info}[0]{artid}; # same as: page_start (if it exists), prefer artid
    $citauthors  = ""; for( my $nn = 0; $nn < $citnauth-1; $nn++){$citauthors  .=             ${$c}{hits}{hits}[$icit]{metadata}{authors}[$nn        ]{first_name}." ".${$c}{hits}{hits}[$icit]{metadata}{authors}[$nn       ]{last_name}.", ";} 
    if(  $citnauth > 0 ){                                         $citauthors  .=             ${$c}{hits}{hits}[$icit]{metadata}{authors}[$citnauth-1]{first_name}." ".${$c}{hits}{hits}[$icit]{metadata}{authors}[$citnauth-1]{last_name};}
@@ -145,6 +150,7 @@ print LOG "Number of publications: $npubs\n";
    print LOG "        Title     : $cittitle\n";
    print LOG "        Published : $citjournal $citjvol ($citjyear) $citjpage\n";
    print LOG "        Type      : $isselfcitation   (0 citation, 1 self by collabs, 2 self)\n";
+   print LOG "        TypeOfPub : $cittype\n";
    print LOG "        PubAuthIDS: @myrecids\n";
    print LOG "        CitAuthIDS: @citrecids\n";
    print LOG "                                                                                    EndCitationRecord\n";
@@ -156,20 +162,27 @@ print LOG "Number of publications: $npubs\n";
    #Write LaTeX string:
    $citurldoi    = "https://www.doi.org/$citdoi";
    $citurlarxiv  = "https://arxiv.org/abs/$citarxiv";
+
+   ($latexcittitle = $cittitle) =~ s/[\_\^\$\\\\\&]//g;        # remove math stuff
+
    $citpubstring = "";
    if($citjournal){
     if($citdoi   ne  "NoDOI"  ){$citpubstring .= ", \\href{$citurldoi}{$citjournal {\\bf $citjvol} ($citjyear) $citjpage}";}
     else                       {$citpubstring .=                    ", $citjournal {\\bf $citjvol} ($citjyear) $citjpage" ;}
     if($citarxiv ne  "NoArXiv"){$citpubstring .= "  \\href{$citurlarxiv}{[arXiv:$citarxiv]}"                              ;}
   }else{ # only preprint number
-   if( $citarxiv ne  "NoArXiv"){$citpubstring .= ", \\href{$citurlarxiv}{arXiv:$citarxiv}"                                ;}
+   if( $citarxiv ne  "NoArXiv"){$citpubstring .= ", \\href{$citurlarxiv}{arXiv:$citarxiv}"                                ;
+   }else{
+    # ADD HERE AN else FOR pubs that have no arxiv nor doi (e.g. theses). Put title and year?
+    $citpubstring .= ", $latexcittitle ($citjyear)";
+   }
   }
   ($citlatexdoi = $citdoi) =~ s/\_/\\\_/g;
   if( ($citdoi   ne  "NoDOI")  && $citdoiprint)
                               {$citpubstring .=  ",\\\\\\href{$citurldoi}{doi:$citlatexdoi}"                              ;}
 
    $latex .= "%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
-   $latex .= "% NewCitation     : $nicit. $citarxiv  $citbibid SlacID: $citid  DOI: $citdoi\n";
+   $latex .= "% NewCitation     : $nicit. $citarxiv  $citbibid SlacID: $citid  DOI: $citdoi  Type: $cittype\n";
    $latex .= "  \\item Type: $isselfcitation Citation: $citauthors${citpubstring}\n";
 #  $latex .= "\n";
 
